@@ -1,1 +1,68 @@
+name: All Workflow Dispatch Input Types Demo
 
+on:
+  workflow_dispatch:
+    inputs:
+      # 1. string：单行文本输入（适合版本号、分支名、镜像标签、备注）
+      version_tag:
+        description: '发布版本号或镜像标签'
+        required: true
+        default: 'v1.0.0'
+        type: string
+
+      # 2. choice：下拉单选框（适合预设枚举值，如日志级别、发布策略）
+      log_level:
+        description: '日志输出级别'
+        required: true
+        default: 'info'
+        type: choice
+        options:
+          - debug
+          - info
+          - warn
+          - error
+
+      # 3. boolean：复选框（适合开关类参数，如 dry_run、跳过测试）
+      dry_run:
+        description: '是否开启 Dry Run（仅演练不执行真实变更）'
+        required: false
+        default: false
+        type: boolean
+
+      # 4. number：数字输入框（适合并发数、超时时间、端口号）
+      timeout_seconds:
+        description: '任务超时时间（秒）'
+        required: false
+        default: 120
+        type: number
+
+      # 5. environment：GitHub 部署环境选择器（关联仓库 Settings -> Environments）
+      target_env:
+        description: '目标部署环境'
+        required: true
+        type: environment
+
+jobs:
+  run-with-inputs:
+    runs-on: ubuntu-latest
+    # 将 environment 类型输入绑定到 job，可自动触发环境审批规则与环境变量注入
+    environment: ${{ inputs.target_env }}
+    steps:
+      - name: 输出所有接收到的参数
+        env:
+          INPUT_VERSION: ${{ inputs.version_tag }}
+          INPUT_LOG_LEVEL: ${{ inputs.log_level }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+          INPUT_TIMEOUT: ${{ inputs.timeout_seconds }}
+          INPUT_ENV: ${{ inputs.target_env }}
+        run: |
+          echo "version_tag     = $INPUT_VERSION"
+          echo "log_level       = $INPUT_LOG_LEVEL"
+          echo "dry_run         = $INPUT_DRY_RUN"
+          echo "timeout_seconds = $INPUT_TIMEOUT"
+          echo "target_env      = $INPUT_ENV"
+
+      - name: 布尔条件判断示例
+        if: ${{ inputs.dry_run == true }}
+        run: |
+          echo "当前处于 Dry Run 模式，跳过实际发布操作。"
